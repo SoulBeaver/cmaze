@@ -1,4 +1,5 @@
 (ns cmaze.maze
+  (require [clojure.set :as set])
   (use cmaze.cell))
 
 (defrecord Maze [cells size])
@@ -21,37 +22,40 @@
         (range total-cells)))
     size))
 
-(defn get-cell [maze x y]
-  (let [cells (:cells maze)
-        size (:size maze)
-        index (+ x (* y size))]
-    (when (> index (* size size)) (throw (IllegalArgumentException. (format "Index (%s, %s) exceeds size of maze." x y))))
-    (nth cells index)))
+(defn get-cell [maze idx dir]
+  (let [{cells :cells size :size} maze]
+    (when (> idx (* size size)) (throw (IllegalArgumentException. (format "Index %s exceeds size of maze." idx))))
+    (case dir
+      :west (nth cells (dec idx))
+      :east (nth cells (inc idx))
+      :north (nth cells (- idx size))
+      :south (nth cells (+ idx size)))))
 
-(defn- link [cell dir]
-  (assoc cell :open-dirs dir))
+(defn- is-open? [cell dir]
+  (contains? (:open-dirs cell) dir))
 
-(defn- link-cell [maze cell idx]
-  (let [{cells :cells size :size} maze
-        {open-dirs :open-dirs} cell]
-    (doseq [open-dirs open-dirs]
-      (fn [open-dir]
-        (case open-dir
-          :east  (link (nth cells (inc idx)) :west)
-          :west  (link (nth cells (dec idx)) :east)
-          :north (link (nth cells (- idx size)) :south)
-          :south (link (nth cells (+ idx size)) :north))))
-    cell))
+(defn- link-cell [maze idx cell]
+  (let [{valid-dirs :valid-dirs open-dirs :open-dirs} cell
+        dirs-to-open (reduce (fn [dirs-to-open dir]
+                               (case dir
+                                 :west (if (is-open? (get-cell maze idx :west) :east) (conj dirs-to-open :west) dirs-to-open)
+                                 :east (if (is-open? (get-cell maze idx :east) :west) (conj dirs-to-open :east) dirs-to-open)
+                                 :north (if (is-open? (get-cell maze idx :north) :south) (conj dirs-to-open :north) dirs-to-open)
+                                 :south (if (is-open? (get-cell maze idx :south) :north) (conj dirs-to-open :south) dirs-to-open)))
+                       #{}
+                       valid-dirs)]
+    (assoc cell :open-dirs (set/union open-dirs dirs-to-open))))
 
-(defn link-cells [maze cells]
-  (for [cell cells
-        idx (range (count cells))]
-    (link-cell maze cell idx)))
+(defn link-cells [maze]
+  (->Maze
+    (map-indexed (partial link-cell maze) (:cells maze))
+    (:size maze)))
 
 (defn traverse [maze f]
   (let [{cells :cells size :size} maze]
-      (map (fn [cell] (f cell))
-        cells)))
+      (->Maze
+        (map (fn [cell] (f cell)) cells)
+        size)))
 
 (defn binary-tree [cell]
   (let [valid-dirs (:valid-dirs cell)]
@@ -61,4 +65,4 @@
       (contains? valid-dirs :east) (assoc cell :open-dirs #{:east})
       :else cell)))
 
-;; sample usage: (link-cells maze (traverse maze binary-tree))
+;; sample usage: (link-cells maze (traverse maze binary-tree)
