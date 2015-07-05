@@ -23,6 +23,7 @@
     size))
 
 (defn get-cell [maze idx dir]
+  "Returns the neighboring cell of the cell at point idx. The direction defines which neighbor to return."
   (let [{cells :cells size :size} maze]
     (when (> idx (* size size)) (throw (IllegalArgumentException. (format "Index %s exceeds size of maze." idx))))
     (case dir
@@ -46,23 +47,46 @@
                        valid-dirs)]
     (assoc cell :open-dirs (set/union open-dirs dirs-to-open))))
 
-(defn link-cells [maze]
+(defn- link-cells [maze]
   (->Maze
     (map-indexed (partial link-cell maze) (:cells maze))
     (:size maze)))
 
 (defn traverse [maze f]
+  "Allows manipulation of a maze by iterating over each cell from top-left to bottom-right."
   (let [{cells :cells size :size} maze]
       (->Maze
         (map (fn [cell] (f cell)) cells)
         size)))
 
+(defn generate-maze-layout [maze f]
+  "Given function f, applies f to each cell in the maze starting at the top-left."
+  (link-cells (traverse maze f)))
+
 (defn binary-tree [cell]
-  (let [valid-dirs (:valid-dirs cell)]
+  (let [valid-dirs (:valid-dirs cell)
+        random-dir (rand-int 2)
+        dir-to-open (if (= 0 random-dir) :east :north)]
     (cond
-      (and (contains? valid-dirs :north) (contains? valid-dirs :east)) (assoc cell :open-dirs #{:east})
+      (and (contains? valid-dirs :north) (contains? valid-dirs :east)) (assoc cell :open-dirs #{dir-to-open})
       (contains? valid-dirs :north) (assoc cell :open-dirs #{:north})
       (contains? valid-dirs :east) (assoc cell :open-dirs #{:east})
       :else cell)))
 
-;; sample usage: (link-cells maze (traverse maze binary-tree)
+(defn- print-wall [pretty-cell dir]
+  (case dir
+    :west (str pretty-cell "<")
+    :east (str pretty-cell ">")
+    :north (str pretty-cell "^")
+    :south (str pretty-cell "v")))
+
+(defn- print-cell [cell]
+  (let [open-dirs (:open-dirs cell)]
+    (reduce print-wall "" (seq open-dirs))))
+
+(defn pretty-print [maze]
+  (let [{cells :cells size :size} maze
+        printable-cells (map (fn [cell] (print-cell cell)) cells)]
+    (dotimes [idx (* size size)]
+      (when (= 0 (mod idx size)) (println))
+      (print (nth printable-cells idx) " "))))

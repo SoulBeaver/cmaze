@@ -1,12 +1,12 @@
 (ns cmaze.cell
   (use cmaze.util))
 
-(defrecord Cell [visited? valid-dirs open-dirs])
+(defrecord Cell [valid-dirs open-dirs])
 
 (defn create-cell
   "Creates an unvisited cell with some or no valid directions."
-  ([] (Cell. false #{} #{}))
-  ([valid-dirs] (Cell. false valid-dirs #{})))
+  ([] (Cell. #{} #{}))
+  ([valid-dirs] (Cell. valid-dirs #{})))
 
 (defn create-corner-cell [corner]
   "Creates a corner cell which has two valid directions."
@@ -27,10 +27,6 @@
 (defn create-unbound-cell []
   "Creates a cell that has no invalid directions."
   (create-cell #{:north :east :south :west}))
-
-(defn visited? [cell]
-  "Determines whether or not a cell has been visisted."
-  (true? (:visited? cell)))
 
 (defn corner-cell? [index size]
   "Determines whether the index is a corner cell of #{top-left top-right bottom-left bottom-right} in a grid of size*size dimensions. Returns both whether or not the index is a corner cell, but also which corner of the grid it's on." (assert (not= 0 size))
