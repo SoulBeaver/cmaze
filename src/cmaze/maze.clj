@@ -65,8 +65,7 @@
 
 (defn binary-tree [cell]
   (let [valid-dirs (:valid-dirs cell)
-        random-dir (rand-int 2)
-        dir-to-open (if (= 0 random-dir) :east :north)]
+        dir-to-open (if (= 0 (rand-int 2)) :east :north)]
     (cond
       (and (contains? valid-dirs :north) (contains? valid-dirs :east)) (assoc cell :open-dirs #{dir-to-open})
       (contains? valid-dirs :north) (assoc cell :open-dirs #{:north})
