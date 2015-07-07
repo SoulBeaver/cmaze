@@ -11,23 +11,21 @@
   ([maze dest cell-size]
     (let [{cells :cells size :size} maze
           total-size (* size size)
-          bi (BufferedImage. (* cell-size size) (* cell-size size) BufferedImage/TYPE_INT_ARGB)
+          bi (BufferedImage. (* cell-size total-size) (* cell-size total-size) BufferedImage/TYPE_INT_ARGB)
           g (.createGraphics bi)]
       (do
         (.setColor g Color/BLACK)
-        (.drawLine g 0 0 (* cell-size total-size) 0)
-        (.drawLine g 0 0 0 (* cell-size total-size))
-        (.drawLine g (* cell-size total-size) 0 (* cell-size total-size) (* cell-size total-size))
-        (.drawLine g 0 (* cell-size total-size) (* cell-size total-size) (* cell-size total-size))
-        ;(dotimes [x size]
-        ;  (dotimes [y size]
-        ;    (let [idx (+ y (* x size))
-        ;          cell (nth cells idx)
-        ;          closed-dirs (set/difference #{:north :east :south :west} (:open-dirs cell))]
-        ;      (doseq [open-dir closed-dirs]
-        ;        (case open-dir
-        ;          :east (.drawLine g (* x size) (* y size) (+ (* x size) cell-size) (* y size))
-        ;          :west (.drawLine g (* x size) (* y size) (- (* x size) cell-size) (* y size))
-        ;          :north (.drawLine g (* x size) (* y size) (* x size) (- (* y size) cell-size))
-        ;          :south (.drawLine g (* x size) (* y size) (* x size) (+ (* y size) cell-size)))))))
+        (dotimes [row size]
+          (dotimes [col size]
+            (let [idx (+ col (* row size))
+                  cell (nth cells idx)
+                  closed-dirs (set/difference #{:north :east :south :west} (:open-dirs cell))
+                  x (* col cell-size)
+                  y (* row cell-size)]
+              (doseq [closed-dir closed-dirs]
+                (case closed-dir
+                  :east (.drawLine g (+ x cell-size) y (+ x cell-size) (+ y cell-size))
+                  :west (.drawLine g x y x (+ y cell-size))
+                  :north (.drawLine g x y (+ x cell-size) y)
+                  :south (.drawLine g x (+ y cell-size) (+ x cell-size) (+ y cell-size)))))))
         (ImageIO/write bi "png" (File. dest))))))
